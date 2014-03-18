@@ -24,6 +24,7 @@ namespace nodeopenni {
     XnVector3D pos;
     uint user;
     bool firing;
+    uint percentExtended;
   };  
 
   struct OpenNIError {

@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <strings.h>
+#include <math.h>
 
 using namespace node;
 using namespace v8;
@@ -45,6 +46,58 @@ namespace nodeopenni {
   {
     const XnChar * statusStr = xnGetStatusString(status);
     printf("Error in context %s: %s\n", context, statusStr);
+  }
+
+  // getPercentExtended
+  // generalization of calculating the angle at the elbow or knee to determine perecent extended of a hand or foot
+
+  int
+  getPercentExtended(XnSkeletonJointPosition& endJoint, XnSkeletonJointPosition& middleJoint, XnSkeletonJointPosition& insideJoint){
+    float dist_a2b = sqrt( pow(endJoint.position.X - middleJoint.position.X, 2) + pow(endJoint.position.Y- middleJoint.position.Y, 2) + pow(endJoint.position.Z - middleJoint.position.Z, 2) );
+    float dist_a2c = sqrt( pow(endJoint.position.X - insideJoint.position.X, 2) + pow(endJoint.position.Y - insideJoint.position.Y, 2) + pow(endJoint.position.Z - insideJoint.position.Z, 2) );
+    float dist_b2c = sqrt( pow(middleJoint.position.X - insideJoint.position.X, 2) + pow(middleJoint.position.Y - insideJoint.position.Y, 2) + pow(middleJoint.position.Z - insideJoint.position.Z, 2) );
+    float percentExtended = (int)( dist_a2c/(dist_b2c + dist_a2b) *100);
+
+    return percentExtended;
+  }
+
+  int
+  percentExtended(xn::UserGenerator& userGenerator, XnUserID user, XnSkeletonJoint eJoint, XnSkeletonJointPosition& Joint)
+  {
+    XnSkeletonJointPosition middleJoint;
+    XnSkeletonJointPosition insideJoint;
+    float jointPercentExtended = 0;
+
+    if(eJoint == XN_SKEL_LEFT_HAND){
+      
+      userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user, XN_SKEL_LEFT_ELBOW, middleJoint);
+      userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user, XN_SKEL_LEFT_SHOULDER, insideJoint);
+      jointPercentExtended = getPercentExtended(Joint, middleJoint, insideJoint);
+
+    }
+
+    if(eJoint == XN_SKEL_RIGHT_HAND){
+      userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user, XN_SKEL_RIGHT_ELBOW, middleJoint);
+      userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user, XN_SKEL_RIGHT_SHOULDER, insideJoint);
+      jointPercentExtended = getPercentExtended(Joint, middleJoint, insideJoint);
+    }
+
+    if(eJoint == XN_SKEL_LEFT_FOOT){
+      
+      userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user, XN_SKEL_LEFT_KNEE, middleJoint);
+      userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user, XN_SKEL_LEFT_HIP, insideJoint);
+      jointPercentExtended = getPercentExtended(Joint, middleJoint, insideJoint);
+
+    }
+
+    if(eJoint == XN_SKEL_RIGHT_FOOT){
+      userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user, XN_SKEL_RIGHT_KNEE, middleJoint);
+      userGenerator.GetSkeletonCap().GetSkeletonJointPosition(user, XN_SKEL_RIGHT_HIP, insideJoint);
+      jointPercentExtended = getPercentExtended(Joint, middleJoint, insideJoint);
+    }
+
+    return jointPercentExtended;
+    
   }
 
   /// Pipe an error into the main loop
@@ -168,8 +221,8 @@ namespace nodeopenni {
 
     Local<Value> callback_v =handle_->Get(this->emitSymbol_);
     Local<Function> callback = Local<Function>::Cast(callback_v);
-    Handle<Value> argv[5] = { jointPos->jointName, Number::New(jointPos->user), Number::New(jointPos->pos.X), Number::New(jointPos->pos.Y), Number::New(jointPos->pos.Z) };
-    callback->Call(handle_, 5, argv);
+    Handle<Value> argv[6] = { jointPos->jointName, Number::New(jointPos->user), Number::New(jointPos->pos.X), Number::New(jointPos->pos.Y), Number::New(jointPos->pos.Z), Number::New(jointPos->percentExtended) };
+    callback->Call(handle_, 6, argv);
 
     jointPos->firing = FALSE;
   }
@@ -264,6 +317,7 @@ namespace nodeopenni {
           jointPos->pos.X = newJointPos.position.X;
           jointPos->pos.Y = newJointPos.position.Y;
           jointPos->pos.Z = newJointPos.position.Z;
+          jointPos->percentExtended = percentExtended(this->userGenerator_, aUsers[i], joints[j], newJointPos);
 
           jointPos->firing = TRUE;
           uv_async_send(callback);
@@ -372,8 +426,8 @@ namespace nodeopenni {
 
     printf("initiated poll thread.\n");
 
-    status = this->gesture_generator_.AddGesture("Click",this->boundingBox_);
-    status = this->gesture_generator_.AddGesture("Wave",this->boundingBox_);
+    //status = this->gesture_generator_.AddGesture("Click",this->boundingBox_);
+    //status = this->gesture_generator_.AddGesture("Wave",this->boundingBox_);
     if (hasError(status)) return error("registering gesture", status);
 
     status = this->context_.StartGeneratingAll();
@@ -411,6 +465,7 @@ namespace nodeopenni {
         jointPositions_[i][j].jointName = Persistent<String>::New(String::New(jointNames[j]));
         jointPositions_[i][j].context = this;
         jointPositions_[i][j].firing = FALSE;
+        jointPositions_[i][j].percentExtended = 0;
       }
     }
 
