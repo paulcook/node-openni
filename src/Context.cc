@@ -373,13 +373,26 @@ namespace nodeopenni {
       User_UserExit, this, this->userExitCallbackHandle_);
     if (hasError(status)) return error("registering user exit callbacks", status);
 
-    status = this->userGenerator_.GetPoseDetectionCap().RegisterToPoseCallbacks(
-      Pose_Detected, NULL, this, this->poseCallbackHandle_);
-    if (hasError(status)) return error("registering pose callbacks", status);
+    // status = this->userGenerator_.GetPoseDetectionCap().RegisterToPoseCallbacks(
+    //   Pose_Detected, NULL, this, this->poseCallbackHandle_);
+    // if (hasError(status)) return error("registering pose callbacks", status);
 
-    this->userGenerator_.GetSkeletonCap().RegisterCalibrationCallbacks(
-      Calibration_Start, Calibration_End, this, this->calibrationCallbackHandle_);
-    if (hasError(status)) return error("registering calibration callbacks", status);
+    // status = this->userGenerator_.GetSkeletonCap().RegisterCalibrationCallbacks(
+    //   Calibration_Start, Calibration_End, this, this->calibrationCallbackHandle_);
+    // if (hasError(status)) return error("registering calibration callbacks", status);
+
+    status = this->userGenerator_.GetSkeletonCap().RegisterToCalibrationStart(
+      Calibration_Start, this, this->calibrationStartCallbackHandle_);
+    if (hasError(status)) return error("registering calibration start callback", status);
+
+    status = this->userGenerator_.GetSkeletonCap().RegisterToCalibrationInProgress(
+      Calibration_InProgress, this, this->calibrationInProgressCallbackHandle_);
+    if (hasError(status)) return error("registering calibration in progress callback", status);
+
+    status = this->userGenerator_.GetSkeletonCap().RegisterToCalibrationComplete(
+      Calibration_End, this, this->calibrationCompleteCallbackHandle_);
+    if (hasError(status)) return error("registering calibration complete callback", status);
+
 
     printf("Registered OpenNI callbacks.\n");
 
@@ -417,8 +430,8 @@ namespace nodeopenni {
       }
     }
 
-    this->gesture_generator_.Create(this->context_);
-    this->gesture_generator_.RegisterGestureCallbacks(Gesture_Recognized, Gesture_Process, this, this->gestureCallbackHandle_);
+    //this->gesture_generator_.Create(this->context_);
+    //this->gesture_generator_.RegisterGestureCallbacks(Gesture_Recognized, Gesture_Process, this, this->gestureCallbackHandle_);
 
 
     // Start the joint pos polling thread

@@ -76,6 +76,9 @@ namespace nodeopenni {
       XnCallbackHandle userExitCallbackHandle_;
       XnCallbackHandle poseCallbackHandle_;
       XnCallbackHandle calibrationCallbackHandle_;
+      XnCallbackHandle calibrationStartCallbackHandle_;
+      XnCallbackHandle calibrationCompleteCallbackHandle_;
+      XnCallbackHandle calibrationInProgressCallbackHandle_;
       XnCallbackHandle jointConfigurationHandle_;
       XnCallbackHandle gestureCallbackHandle_;
       
